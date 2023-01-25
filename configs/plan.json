@@ -1,0 +1,71 @@
+{
+    "base": "configs/base.json",
+    "groups": {
+        "test": {
+            "scheme": "dist",
+            "hidden_dim": "hd200",
+            "dropout_std": "ds.5"
+        }
+    },
+    "factors": {
+        "dataset": {
+            "cifar-10": {"dataset": {"name": "cifar-10"}},
+            "cifar-100": {"dataset": {"name": "cifar-100"}}
+        },
+        "scheme": {
+            "base": {},
+            "mean": {"fit": {"num_samples": 16}},
+            "dist": {"model": {"name": "dist-mlp"}, "fit": {"loss_fn": {"name": "dist-ce"}}}
+        },
+        "normalize_std": {
+            "ns.5": {"dataset": {"transform": {"normalize": {"std": 0.5}}}},
+            "ns1": {"dataset": {"transform": {"normalize": {"std": 1}}}},
+            "ns2": {"dataset": {"transform": {"normalize": {"std": 2}}}}
+        },
+        "normalize_mean": {
+            "nm.25": {"dataset": {"transform": {"normalize": {"mean": 0.25}}}},
+            "nm.5": {"dataset": {"transform": {"normalize": {"mean": 0.5}}}},
+            "nm.75": {"dataset": {"transform": {"normalize": {"mean": 0.75}}}}
+        },
+        "batch_size": {
+            "bs25": {"dataset": {"train": {"batch_size": 25}}},
+            "bs50": {"dataset": {"train": {"batch_size": 50}}},
+            "bs100": {"dataset": {"train": {"batch_size": 100}}}
+        },
+        "num_layers": {
+            "l3": {"model": {"num_layers": 3}},
+            "l4": {"model": {"num_layers": 4}},
+            "l5": {"model": {"num_layers": 5}}
+        },
+        "hidden_dim": {
+            "hd200": {"model": {"hidden_dim": 200}},
+            "hd500": {"model": {"hidden_dim": 500}},
+            "hd1000": {"model": {"hidden_dim": 1000}}
+        },
+        "dropout_std": {
+            "ds0": {"model": {"dropout": {"std": 0.0}}},
+            "ds.25": {"model": {"dropout": {"std": 0.25}}},
+            "ds.5": {"model": {"dropout": {"std": 0.5}}},
+            "ds.75": {"model": {"dropout": {"std": 0.75}}}
+        },
+        "learning_rate": {
+            "lr1e-3": {"fit": {"optim": {"learning_rate": 1e-3}}},
+            "lr2e-3": {"fit": {"optim": {"learning_rate": 2e-3}}},
+            "lr5e-3": {"fit": {"optim": {"learning_rate": 5e-3}}},
+            "lr1e-2": {"fit": {"optim": {"learning_rate": 1e-2}}}
+        },
+        "momentum": {
+            "mo.9": {"fit": {"optim": {"momentum": 0.9}}},
+            "mo.95": {"fit": {"optim": {"momentum": 0.95}}},
+            "mo.98": {"fit": {"optim": {"momentum": 0.98}}}
+        },
+        "dropout_norm": {
+            "": {"fit": {"dropout_norm": false}},
+            "dn": {"fit": {"dropout_norm": true}}
+        },
+        "num_samples": {
+            "s1": {"fit": {"num_samples": 1}},
+            "s16": {"fit": {"num_samples": 16}}
+        }
+    }
+}
