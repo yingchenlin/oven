@@ -237,7 +237,7 @@ class DistMLP(MLP):
 
 class DistCrossEntropyLoss(Loss):
 
-    def forward(self, inputs, outputs, targets):
+    def forward(self, inputs, outputs, targets, model: nn.Module):
         (m, k), i = outputs, targets
         L = cross_entropy(m, i)
         if k is not None:
