@@ -2,9 +2,10 @@
     "base": "configs/base.json",
     "groups": {
         "test": {
-            "scheme": "dist",
-            "hidden_dim": "hd200",
-            "dropout_std": "ds.5"
+            "hidden_dim": "hd500",
+            "dropout_std": true,
+            "dropout_norm": true,
+            "num_samples": "s1"
         }
     },
     "factors": {
@@ -60,8 +61,8 @@
             "mo.98": {"fit": {"optim": {"momentum": 0.98}}}
         },
         "dropout_norm": {
-            "": {"fit": {"dropout_norm": false}},
-            "dn": {"fit": {"dropout_norm": true}}
+            "": {"fit": {"requires_eval": false}},
+            "dn": {"fit": {"requires_eval": true, "loss_fn": {"name": "dn-ce", "weight": 1.0}}}
         },
         "num_samples": {
             "s1": {"fit": {"num_samples": 1}},

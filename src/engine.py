@@ -28,11 +28,13 @@ class Engine:
         self.base_path = f"outputs/{self.label}"
         self.num_epochs = self.config["fit"]["num_epochs"]
         self.num_samples = self.config["fit"]["num_samples"]
-        self.requires_eval = self.config["fit"]["requires_eval"]
         self.checkpoint_interval = self.config["fit"]["checkpoint_interval"]
-        self.checkpointing = False
         self.epoch = 0
         self.logs = []
+    
+    @property
+    def checkpointing(self):
+        return self.checkpoint and self.epoch % self.checkpoint_interval == 0
 
     def run(self):
         if os.path.exists(f"{self.base_path}/done"):
@@ -41,8 +43,6 @@ class Engine:
         self.prepare()
         while self.epoch < self.num_epochs:
             self.epoch += 1
-            if self.checkpoint:
-                self.checkpointing = self.epoch % self.checkpoint_interval == 0
             train_metrics = self.train(self.dataloader(train=True))
             test_metrics = self.eval(self.dataloader(train=False))
             self.log(train=train_metrics, test=test_metrics)
@@ -102,19 +102,14 @@ class Engine:
         for inputs, targets in dataloader:
 
             self.optim.zero_grad()
-
             outputs = self.model(inputs)
-            if self.requires_eval:
-                self.model.eval()
-                outputs = (outputs, self.model(inputs))
-                self.model.train()
-            losses = self.loss_fn(outputs, targets)
-
+            losses = self.loss_fn(inputs, outputs, targets, self.model)
             losses.mean().backward()
             self.optim.step()
 
             self.metrics.add_losses(losses)
             self.metrics.add_states(self.model, self.checkpointing)
+            self.metrics.add_grads(outputs, targets, self.model, self.checkpointing)
 
         return self.metrics.get()
 
@@ -128,15 +123,15 @@ class Engine:
 
         for inputs, targets in dataloader:
 
+            self.model.zero_grad()
             outputs = self.model(inputs)
-            if self.requires_eval:
-                outputs = (outputs, outputs)
-            losses = self.loss_fn(outputs, targets)
+            losses = self.loss_fn(inputs, outputs, targets, self.model)
             losses.mean().backward()
 
             self.metrics.add_losses(losses)
             self.metrics.add_ranks(outputs, targets)
             self.metrics.add_states(self.model, self.checkpointing)
+            self.metrics.add_grads(outputs, targets, self.model, self.checkpointing)
 
         return self.metrics.get()
 

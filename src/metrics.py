@@ -36,12 +36,32 @@ class Metrics:
         for name, module in model.named_modules():
             if isinstance(module, Capture):
                 state = module.state
-                grad = state.grad * state.shape[0]
+                grad = state.grad * state.shape[0] * state.shape[1]
                 self._agg_norm(f"${name}.state", state)
                 self._agg_norm(f"${name}.grad", grad)
                 if has_tensor:
                     self._agg_moment(f"${name}.state", state)
                     self._agg_moment(f"${name}.grad", grad)
+
+    def add_grads(self, outputs: torch.Tensor, targets: torch.Tensor, model: torch.nn.Module, has_tensor: bool):
+        x, i = outputs.detach(), targets
+        p = x.softmax(-1)
+        j = p - torch.nn.functional.one_hot(i, x.shape[-1])
+        h = p.diag_embed() - p.unsqueeze(-2) * p.unsqueeze(-1)
+        for name, m in reversed(list(model.named_modules())[:-1]):
+            if isinstance(m, torch.nn.Linear):
+                w = m.weight.detach()
+                j = torch.einsum("sbi,ij->sbj", j, w)
+                h = torch.einsum("sbij,ik,jl->sbkl", h, w, w)
+            if isinstance(m, Capture):
+                self._agg_norm(f"${name}.jacob", j)
+                self._agg_norm(f"${name}.hess", h.diagonal(0, -2, -1))
+                if has_tensor:
+                    self._agg_moment(f"${name}.jacob", j)
+                    self._agg(f"${name}.hess", "m1", h)
+                u = (m.state.detach() > 0)
+                j = j * u
+                h = h * u.unsqueeze(-2) * u.unsqueeze(-1)
 
     def add_params(self, model: torch.nn.Module):
         for name, param in model.named_parameters():

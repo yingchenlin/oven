@@ -28,10 +28,10 @@ def get_loss_fn(config):
     name = config["name"]
     if name == "ce":
         return CrossEntropyLoss(config)
+    if name == "n-ce":
+        return NormCrossEntropyLoss(config)
     if name == "dn-ce":
         return DropoutNormCrossEntropyLoss(config)
-    if name == "dmn-ce":
-        return DropoutMeanNormCrossEntropyLoss(config)
     if name == "dist-ce":
         return DistCrossEntropyLoss(config)
     raise NotImplementedError()
@@ -40,6 +40,8 @@ def get_activation(config):
     name = config["name"]
     if name == "relu":
         return nn.ReLU()
+    if name == "tanh":
+        return nn.Tanh()
     raise NotImplementedError()
 
 
@@ -51,6 +53,22 @@ class Capture(nn.Module):
             self.state = self.state[0]
         self.state.retain_grad()
         return input
+
+
+class Loss(nn.Module):
+
+    def __init__(self, config):
+        super().__init__()
+
+    def forward(self, inputs, outputs, targets, model: nn.Module):
+        raise NotImplementedError()
+
+
+class RegLoss(Loss):
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.weight = config["weight"]
 
 # MLP
 
@@ -100,42 +118,32 @@ class MLP(nn.Sequential):
             layers.append(self._dropout(config["dropout"]))
         input_dim, output_dim = output_dim, dataset.num_classes
         layers.append(self._linear(input_dim, output_dim))
+        layers.append(Capture())
 
         super().__init__(*layers)
 
 
-class CrossEntropyLoss(nn.Module):
+class CrossEntropyLoss(Loss):
 
-    def __init__(self, config):
-        super().__init__()
-
-    def forward(self, inputs, targets):
-        return cross_entropy(inputs, targets)
+    def forward(self, inputs, outputs, targets, model: nn.Module):
+        return cross_entropy(outputs, targets)
 
 
-class DropoutNormCrossEntropyLoss(nn.Module):
+class NormCrossEntropyLoss(RegLoss):
 
-    def __init__(self, config):
-        super().__init__()
-        self.weight = config["weight"]
-        self.use_det = config["use_det"]
-
-    def forward(self, inputs, targets):
-        cur, det = inputs
-        mean = det if self.use_det else cur
-        diff = cur - det
-        return cross_entropy(mean, targets) + diff.square().mean(-1) * self.weight
+    def forward(self, inputs, outputs, targets, model: nn.Module):
+        return cross_entropy(outputs, targets) + outputs.square().mean(-1) * self.weight
 
 
-class DropoutMeanNormCrossEntropyLoss(nn.Module):
+class DropoutNormCrossEntropyLoss(RegLoss):
 
-    def __init__(self, config):
-        self.weight = config["weight"]
-        super().__init__()
-
-    def forward(self, inputs, targets):
-        mean = inputs.mean(0, keepdim=True)
-        diff = inputs - mean
+    def forward(self, inputs, outputs, targets, model: nn.Module):
+        mean = outputs
+        if model.training:
+            model.eval()
+            mean = model(inputs)
+            model.train()
+        diff = outputs - mean
         return cross_entropy(mean, targets) + diff.square().mean(-1) * self.weight
 
 
@@ -227,13 +235,10 @@ class DistMLP(MLP):
     _dropout = DistDropout
 
 
-class DistCrossEntropyLoss(nn.Module):
+class DistCrossEntropyLoss(Loss):
 
-    def __init__(self, config):
-        super().__init__()
-
-    def forward(self, inputs, targets):
-        (m, k), i = inputs, targets
+    def forward(self, inputs, outputs, targets):
+        (m, k), i = outputs, targets
         L = cross_entropy(m, i)
         if k is not None:
             p = m.softmax(-1)
