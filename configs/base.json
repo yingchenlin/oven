@@ -26,11 +26,11 @@
         },
         "dropout": {
             "std": 0.5,
-            "dist": "bernoulli"
+            "dist": "normal"
         }
     },
     "fit": {
-        "num_epochs": 50,
+        "num_epochs": 100,
         "num_samples": 1,
         "checkpoint_interval": 10,
         "loss_fn": {

@@ -3,8 +3,9 @@
     "groups": {
         "test": {
             "hidden_dim": "hd500",
+            "activation": "tanh",
             "dropout_std": true,
-            "dropout_norm": true,
+            "dropout_norm": ["", "dn1"],
             "num_samples": "s1"
         }
     },
@@ -33,6 +34,10 @@
             "bs50": {"dataset": {"train": {"batch_size": 50}}},
             "bs100": {"dataset": {"train": {"batch_size": 100}}}
         },
+        "activation": {
+            "relu": {"model": {"activation": {"name": "relu"}}},
+            "tanh": {"model": {"activation": {"name": "tanh"}}}
+        },
         "num_layers": {
             "l3": {"model": {"num_layers": 3}},
             "l4": {"model": {"num_layers": 4}},
@@ -44,10 +49,10 @@
             "hd1000": {"model": {"hidden_dim": 1000}}
         },
         "dropout_std": {
-            "ds0": {"model": {"dropout": {"std": 0.0}}},
             "ds.25": {"model": {"dropout": {"std": 0.25}}},
             "ds.5": {"model": {"dropout": {"std": 0.5}}},
-            "ds.75": {"model": {"dropout": {"std": 0.75}}}
+            "ds.75": {"model": {"dropout": {"std": 0.75}}},
+            "ds1": {"model": {"dropout": {"std": 1}}}
         },
         "learning_rate": {
             "lr1e-3": {"fit": {"optim": {"learning_rate": 1e-3}}},
@@ -61,8 +66,10 @@
             "mo.98": {"fit": {"optim": {"momentum": 0.98}}}
         },
         "dropout_norm": {
-            "": {"fit": {"requires_eval": false}},
-            "dn": {"fit": {"requires_eval": true, "loss_fn": {"name": "dn-ce", "weight": 1.0}}}
+            "": {},
+            "dnp": {"fit": {"loss_fn": {"name": "dn-ce", "kind": "prob"}}},
+            "dn1": {"fit": {"loss_fn": {"name": "dn-ce", "kind": "mean"}}},
+            "dne": {"fit": {"loss_fn": {"name": "dn-ce", "kind": "even"}}}
         },
         "num_samples": {
             "s1": {"fit": {"num_samples": 1}},

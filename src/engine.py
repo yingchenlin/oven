@@ -108,8 +108,8 @@ class Engine:
             self.optim.step()
 
             self.metrics.add_losses(losses)
-            self.metrics.add_states(self.model, self.checkpointing)
-            self.metrics.add_grads(outputs, targets, self.model, self.checkpointing)
+            self.metrics.add_ranks(outputs, targets)
+            self.metrics.add_states(self.model)
 
         return self.metrics.get()
 
@@ -130,21 +130,16 @@ class Engine:
 
             self.metrics.add_losses(losses)
             self.metrics.add_ranks(outputs, targets)
-            self.metrics.add_states(self.model, self.checkpointing)
-            self.metrics.add_grads(outputs, targets, self.model, self.checkpointing)
+            self.metrics.add_states(self.model)
 
         return self.metrics.get()
 
     def log(self, **kwargs):
 
         scalars = {"epoch": self.epoch}
-        tensors = {}
         for phase, metrics in kwargs.items():
             for k, v in metrics.items():
-                if isinstance(v, float):
-                    scalars[f"{phase}.{k}"] = v
-                if isinstance(v, torch.Tensor):
-                    tensors[f"{phase}.{k}"] = v
+                scalars[f"{phase}.{k}"] = v
 
         self.logs.append(scalars)
         with open(f"{self.base_path}/logs.json", "w") as file:
@@ -153,13 +148,10 @@ class Engine:
         if self.checkpointing:
             path = f"{self.base_path}/checkpoint-{self.epoch}.pt"
             torch.save(self.model.state_dict(), path)
-            if len(tensors) > 0:
-                path = f"{self.base_path}/log-{self.epoch}.pt"
-                torch.save(tensors, path)
 
         log_str = ""
         for k, v in scalars.items():
-            if "$" in k or isinstance(v, torch.Tensor): continue
+            if "$" in k or not isinstance(v, (int, float)): continue
             if isinstance(v, float): v = f"{v:.4f}"
             log_str += f"{k}={v} "
         logging.info(f"{self.label} {log_str[:-1]}")

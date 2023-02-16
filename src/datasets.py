@@ -2,6 +2,10 @@ import torch
 import torch.utils.data
 import torchvision
 
+import copy
+import functools
+
+
 def get_dataset(config):
     name = config["name"]
     path = f"datasets/{name}"
@@ -22,18 +26,27 @@ def get_dataloader(config, dataset):
         shuffle=config["shuffle"],
     )
 
+
 class Dataset:
 
     def __init__(self, config, path):
         train_transform = get_transform(config["transform"], self.input_shape, True)
         test_transform = get_transform(config["transform"], self.input_shape, False)
-        self.train_dataset = self._get_dataset(path, train_transform, True)
-        self.test_dataset = self._get_dataset(path, test_transform, False)
+        self.train_dataset = self._get_dataset(path, True, train_transform)
+        self.test_dataset = self._get_dataset(path, False, test_transform)
         self.train_dataloader = get_dataloader(config["train"], self.train_dataset)
         self.test_dataloader = get_dataloader(config["test"], self.test_dataset)
 
     def _get_dataset(self, path, train, transform):
+        dataset = copy.copy(self._load_dataset(path, train))
+        dataset.transform = transform
+        dataset.transforms = torchvision.datasets.vision.StandardTransform(transform, None)
+        return dataset
+
+    @staticmethod
+    def _load_dataset(path, train):
         raise NotImplementedError()
+
 
 def get_normalize(config, input_shape):
     return torchvision.transforms.Normalize(
@@ -61,35 +74,41 @@ class MNIST(Dataset):
     input_shape = (1, 32, 32)
     num_classes = 10
 
-    def _get_dataset(self, path, transform, train):
+    @staticmethod
+    @functools.cache
+    def _load_data(path, train):
         return torchvision.datasets.MNIST(
-            path, train=train, transform=transform, download=True)
-
+            path, train=train, download=True)
 
 class CIFAR10(Dataset):
 
     input_shape = (3, 32, 32)
     num_classes = 10
 
-    def _get_dataset(self, path, transform, train):
+    @staticmethod
+    @functools.cache
+    def _load_dataset(path, train):
         return torchvision.datasets.CIFAR10(
-            path, train=train, transform=transform, download=True)
+            path, train=train, download=True)
 
 class CIFAR100(Dataset):
 
     input_shape = (3, 32, 32)
     num_classes = 100
 
-    def _get_dataset(self, path, transform, train):
+    @staticmethod
+    @functools.cache
+    def _load_dataset(path, train):
         return torchvision.datasets.CIFAR100(
-            path, train=train, transform=transform, download=True)
+            path, train=train, download=True)
 
 class SVHN(Dataset):
 
     input_shape = (3, 32, 32)
     num_classes = 10
 
-    def _get_dataset(self, path, transform, train):
-        split = "train" if train else "test"
+    @staticmethod
+    @functools.cache
+    def _load_dataset(path, train):
         return torchvision.datasets.SVHN(
-            path, split=split, transform=transform, download=True)
+            path, train=train, download=True)

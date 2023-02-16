@@ -28,8 +28,6 @@ def get_loss_fn(config):
     name = config["name"]
     if name == "ce":
         return CrossEntropyLoss(config)
-    if name == "n-ce":
-        return NormCrossEntropyLoss(config)
     if name == "dn-ce":
         return DropoutNormCrossEntropyLoss(config)
     if name == "dist-ce":
@@ -51,7 +49,8 @@ class Capture(nn.Module):
         self.state = input
         if isinstance(self.state, tuple):
             self.state = self.state[0]
-        self.state.retain_grad()
+        if self.state.requires_grad:
+            self.state.retain_grad()
         return input
 
 
@@ -64,14 +63,7 @@ class Loss(nn.Module):
         raise NotImplementedError()
 
 
-class RegLoss(Loss):
-
-    def __init__(self, config):
-        super().__init__(config)
-        self.weight = config["weight"]
-
 # MLP
-
 
 class Dropout(nn.Module):
 
@@ -129,22 +121,30 @@ class CrossEntropyLoss(Loss):
         return cross_entropy(outputs, targets)
 
 
-class NormCrossEntropyLoss(RegLoss):
+class DropoutNormCrossEntropyLoss(Loss):
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.kind = config["kind"]
 
     def forward(self, inputs, outputs, targets, model: nn.Module):
-        return cross_entropy(outputs, targets) + outputs.square().mean(-1) * self.weight
 
-
-class DropoutNormCrossEntropyLoss(RegLoss):
-
-    def forward(self, inputs, outputs, targets, model: nn.Module):
-        mean = outputs
+        m = outputs
         if model.training:
             model.eval()
-            mean = model(inputs)
+            m = model(inputs)
             model.train()
-        diff = outputs - mean
-        return cross_entropy(mean, targets) + diff.square().mean(-1) * self.weight
+        d = outputs - m
+
+        if self.kind == "prob":
+            p = m.softmax(-1)
+            return cross_entropy(m, targets) + ((d.square() * p).sum(-1) - (d * p).sum(-1).square()) * 0.5
+        elif self.kind == "mean":
+            return cross_entropy(m, targets) + d.square().mean(-1) * 0.5
+        elif self.kind == "even":
+            return (cross_entropy(m + d, targets) + cross_entropy(m - d, targets)) * 0.5
+
+        raise NotImplementedError()
 
 
 # DistMLP
