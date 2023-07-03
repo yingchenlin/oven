@@ -4,6 +4,7 @@ import torchvision
 
 import copy
 import functools
+from typing import Tuple
 
 
 def get_dataset(config):
@@ -29,7 +30,7 @@ def get_dataloader(config, dataset):
 
 
 class Dataset:
-    input_shape: tuple[int, ...]
+    input_shape: Tuple[int, ...]
     num_classes: int
 
     def __init__(self, config, path):
