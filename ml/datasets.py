@@ -92,7 +92,7 @@ class MNIST(Dataset):
     num_classes = 10
 
     @staticmethod
-    @functools.cache
+    @functools.lru_cache
     def _load_data(path, train):
         return torchvision.datasets.MNIST(path, train=train, download=True)
 
