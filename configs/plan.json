@@ -2,78 +2,374 @@
     "base": "configs/base.json",
     "groups": {
         "test": {
-            "hidden_dim": "hd500",
-            "activation": "tanh",
-            "dropout_std": true,
-            "dropout_norm": ["", "dn1"],
-            "num_samples": "s1"
+            "test": "dist",
+            "dropout_scale": "e"
+        },
+        "sweep": {
+            "dataset": true,
+            "activation": "relu",
+            "dropout_scheme": true,
+            "dropout_target": "x",
+            "dropout_std": [
+                "std.5"
+            ],
+            "loss_fn": "ce",
+            "num_samples": "x16"
         }
     },
     "factors": {
-        "dataset": {
-            "cifar-10": {"dataset": {"name": "cifar-10"}},
-            "cifar-100": {"dataset": {"name": "cifar-100"}}
-        },
-        "scheme": {
+        "test": {
+            "none": {
+                "model": {
+                    "dropout": {
+                        "std": 0
+                    }
+                }
+            },
             "base": {},
-            "mean": {"fit": {"num_samples": 16}},
-            "dist": {"model": {"name": "dist-mlp"}, "fit": {"loss_fn": {"name": "dist-ce"}}}
+            "dist": {
+                "model": {
+                    "name": "dist-mlp"
+                },
+                "fit": {
+                    "loss_fn": {
+                        "name": "dist-ce"
+                    }
+                }
+            },
+            "reg_loss": {
+                "model": {
+                    "dropout": {
+                        "scheme": "reg_loss"
+                    }
+                }
+            }
         },
-        "normalize_std": {
-            "ns.5": {"dataset": {"transform": {"normalize": {"std": 0.5}}}},
-            "ns1": {"dataset": {"transform": {"normalize": {"std": 1}}}},
-            "ns2": {"dataset": {"transform": {"normalize": {"std": 2}}}}
-        },
-        "normalize_mean": {
-            "nm.25": {"dataset": {"transform": {"normalize": {"mean": 0.25}}}},
-            "nm.5": {"dataset": {"transform": {"normalize": {"mean": 0.5}}}},
-            "nm.75": {"dataset": {"transform": {"normalize": {"mean": 0.75}}}}
-        },
-        "batch_size": {
-            "bs25": {"dataset": {"train": {"batch_size": 25}}},
-            "bs50": {"dataset": {"train": {"batch_size": 50}}},
-            "bs100": {"dataset": {"train": {"batch_size": 100}}}
+        "dataset": {
+            "c10": {
+                "dataset": {
+                    "name": "cifar-10"
+                }
+            },
+            "c100": {
+                "dataset": {
+                    "name": "cifar-100"
+                }
+            }
         },
         "activation": {
-            "relu": {"model": {"activation": {"name": "relu"}}},
-            "tanh": {"model": {"activation": {"name": "tanh"}}}
+            "relu": {
+                "model": {
+                    "activation": {
+                        "name": "relu"
+                    }
+                }
+            },
+            "tanh": {
+                "model": {
+                    "activation": {
+                        "name": "tanh"
+                    }
+                }
+            }
         },
-        "num_layers": {
-            "l3": {"model": {"num_layers": 3}},
-            "l4": {"model": {"num_layers": 4}},
-            "l5": {"model": {"num_layers": 5}}
+        "dropout_scheme": {
+            "d": {
+                "model": {
+                    "dropout": {
+                        "scheme": "dropout"
+                    }
+                }
+            },
+            "r": {
+                "model": {
+                    "dropout": {
+                        "scheme": "reg_loss"
+                    }
+                }
+            }
         },
-        "hidden_dim": {
-            "hd200": {"model": {"hidden_dim": 200}},
-            "hd500": {"model": {"hidden_dim": 500}},
-            "hd1000": {"model": {"hidden_dim": 1000}}
+        "dropout_scale": {
+            "e": {
+                "model": {
+                    "dropout": {
+                        "scale": "element"
+                    }
+                }
+            },
+            "s": {
+                "model": {
+                    "dropout": {
+                        "scale": "sample"
+                    }
+                }
+            },
+            "f": {
+                "model": {
+                    "dropout": {
+                        "scale": "feature"
+                    }
+                }
+            },
+            "b": {
+                "model": {
+                    "dropout": {
+                        "scale": "batch"
+                    }
+                }
+            }
+        },
+        "dropout_detach": {
+            "g": {
+                "model": {
+                    "dropout": {
+                        "detach": false
+                    }
+                }
+            },
+            "sg": {
+                "model": {
+                    "dropout": {
+                        "detach": true
+                    }
+                }
+            }
+        },
+        "dropout_target": {
+            "x": {
+                "model": {
+                    "dropout": {
+                        "target": "input"
+                    }
+                }
+            },
+            "w": {
+                "model": {
+                    "dropout": {
+                        "target": "weight"
+                    }
+                }
+            }
         },
         "dropout_std": {
-            "ds.25": {"model": {"dropout": {"std": 0.25}}},
-            "ds.5": {"model": {"dropout": {"std": 0.5}}},
-            "ds.75": {"model": {"dropout": {"std": 0.75}}},
-            "ds1": {"model": {"dropout": {"std": 1}}}
+            "std.1": {
+                "model": {
+                    "dropout": {
+                        "std": 0.1
+                    }
+                }
+            },
+            "std.2": {
+                "model": {
+                    "dropout": {
+                        "std": 0.2
+                    }
+                }
+            },
+            "std.3": {
+                "model": {
+                    "dropout": {
+                        "std": 0.3
+                    }
+                }
+            },
+            "std.4": {
+                "model": {
+                    "dropout": {
+                        "std": 0.4
+                    }
+                }
+            },
+            "std.5": {
+                "model": {
+                    "dropout": {
+                        "std": 0.5
+                    }
+                }
+            },
+            "std.7": {
+                "model": {
+                    "dropout": {
+                        "std": 0.7
+                    }
+                }
+            },
+            "std1": {
+                "model": {
+                    "dropout": {
+                        "std": 1
+                    }
+                }
+            }
         },
-        "learning_rate": {
-            "lr1e-3": {"fit": {"optim": {"learning_rate": 1e-3}}},
-            "lr2e-3": {"fit": {"optim": {"learning_rate": 2e-3}}},
-            "lr5e-3": {"fit": {"optim": {"learning_rate": 5e-3}}},
-            "lr1e-2": {"fit": {"optim": {"learning_rate": 1e-2}}}
+        "dropout_diff": {
+            "diff.25": {
+                "model": {
+                    "dropout": {
+                        "diff": 0.25
+                    }
+                }
+            },
+            "diff.5": {
+                "model": {
+                    "dropout": {
+                        "diff": 0.5
+                    }
+                }
+            },
+            "diff.75": {
+                "model": {
+                    "dropout": {
+                        "diff": 0.75
+                    }
+                }
+            },
+            "diff1": {
+                "model": {
+                    "dropout": {
+                        "diff": 1.0
+                    }
+                }
+            }
         },
-        "momentum": {
-            "mo.9": {"fit": {"optim": {"momentum": 0.9}}},
-            "mo.95": {"fit": {"optim": {"momentum": 0.95}}},
-            "mo.98": {"fit": {"optim": {"momentum": 0.98}}}
+        "dropout_layers": {
+            "l0": {
+                "model": {
+                    "dropout": {
+                        "layers": [
+                            0
+                        ]
+                    }
+                }
+            },
+            "l1": {
+                "model": {
+                    "dropout": {
+                        "layers": [
+                            1
+                        ]
+                    }
+                }
+            },
+            "l2": {
+                "model": {
+                    "dropout": {
+                        "layers": [
+                            2
+                        ]
+                    }
+                }
+            },
+            "l3": {
+                "model": {
+                    "dropout": {
+                        "layers": [
+                            3
+                        ]
+                    }
+                }
+            },
+            "l4": {
+                "model": {
+                    "dropout": {
+                        "layers": [
+                            4
+                        ]
+                    }
+                }
+            },
+            "l01234": {
+                "model": {
+                    "dropout": {
+                        "layers": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4
+                        ]
+                    }
+                }
+            }
         },
-        "dropout_norm": {
-            "": {},
-            "dnp": {"fit": {"loss_fn": {"name": "dn-ce", "kind": "prob"}}},
-            "dn1": {"fit": {"loss_fn": {"name": "dn-ce", "kind": "mean"}}},
-            "dne": {"fit": {"loss_fn": {"name": "dn-ce", "kind": "even"}}}
+        "loss_fn": {
+            "ce": {}
         },
         "num_samples": {
-            "s1": {"fit": {"num_samples": 1}},
-            "s16": {"fit": {"num_samples": 16}}
+            "x1": {
+                "fit": {
+                    "num_samples": 1
+                }
+            },
+            "x16": {
+                "fit": {
+                    "num_samples": 16
+                }
+            }
+        },
+        "num_layers": {
+            "l3": {
+                "model": {
+                    "num_layers": 3
+                }
+            },
+            "l4": {
+                "model": {
+                    "num_layers": 4
+                }
+            },
+            "l5": {
+                "model": {
+                    "num_layers": 5
+                }
+            }
+        },
+        "hidden_dim": {
+            "hd200": {
+                "model": {
+                    "hidden_dim": 200
+                }
+            },
+            "hd500": {
+                "model": {
+                    "hidden_dim": 500
+                }
+            },
+            "hd1000": {
+                "model": {
+                    "hidden_dim": 1000
+                }
+            }
+        },
+        "learning_rate": {
+            "lr1e-3": {
+                "fit": {
+                    "optim": {
+                        "learning_rate": 1e-3
+                    }
+                }
+            },
+            "lr2e-3": {
+                "fit": {
+                    "optim": {
+                        "learning_rate": 2e-3
+                    }
+                }
+            },
+            "lr5e-3": {
+                "fit": {
+                    "optim": {
+                        "learning_rate": 5e-3
+                    }
+                }
+            },
+            "lr1e-2": {
+                "fit": {
+                    "optim": {
+                        "learning_rate": 1e-2
+                    }
+                }
+            }
         }
     }
 }

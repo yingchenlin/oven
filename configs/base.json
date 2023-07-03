@@ -6,7 +6,7 @@
                 "mean": 0.5,
                 "std": 0.2
             },
-            "flip": true
+            "flip": {}
         },
         "train": {
             "batch_size": 100,
@@ -26,24 +26,40 @@
         },
         "dropout": {
             "std": 0.5,
-            "dist": "normal"
+            "layers": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "dist": "normal",
+            "scheme": "dropout",
+            "scale": "element",
+            "detach": false,
+            "target": "input"
         }
     },
     "fit": {
-        "num_epochs": 100,
+        "num_epochs": 200,
         "num_samples": 1,
-        "checkpoint_interval": 10,
+        "checkpoint_interval": 20,
         "loss_fn": {
-            "name": "ce"
+            "name": "ce",
+            "diff": 0.0
         },
         "optim": {
             "name": "sgd",
             "momentum": 0.9,
-            "learning_rate": 1e-2,
+            "learning_rate": 2e-3,
             "weight_decay": 0
         }
     },
     "metrics": {
-        "topks": [1, 2, 3]
+        "topks": [
+            1,
+            2,
+            3
+        ]
     }
 }
