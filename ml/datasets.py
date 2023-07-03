@@ -102,7 +102,7 @@ class CIFAR10(Dataset):
     num_classes = 10
 
     @staticmethod
-    @functools.cache
+    @functools.lru_cache
     def _load_dataset(path, train):
         return torchvision.datasets.CIFAR10(path, train=train, download=True)
 
@@ -112,7 +112,7 @@ class CIFAR100(Dataset):
     num_classes = 100
 
     @staticmethod
-    @functools.cache
+    @functools.lru_cache
     def _load_dataset(path, train):
         return torchvision.datasets.CIFAR100(path, train=train, download=True)
 
@@ -122,6 +122,7 @@ class SVHN(Dataset):
     num_classes = 10
 
     @staticmethod
-    @functools.cache
+    @functools.lru_cache
     def _load_dataset(path, train):
-        return torchvision.datasets.SVHN(path, train=train, download=True)
+        split = "train" if train else "test"
+        return torchvision.datasets.SVHN(path, split=split, download=True)
