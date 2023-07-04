@@ -3,7 +3,10 @@
     "groups": {
         "test": {
             "test": "dist",
-            "dropout_scale": "e"
+            "dropout_scale": [
+                "b",
+                "e"
+            ]
         },
         "sweep": {
             "dataset": true,
