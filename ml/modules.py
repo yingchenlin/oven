@@ -8,16 +8,16 @@ from typing import Tuple, Optional
 from ml.datasets import Dataset
 
 
-def get_model(config, dataset):
+def get_model(config: dict, dataset: Dataset) -> nn.Module:
     name = config["name"]
     if name == "mlp":
         return MLP(config, dataset)
     if name == "dist-mlp":
         return DistMLP(config, dataset)
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
-def get_optim(config, model):
+def get_optim(config: dict, model: nn.Module) -> torch.optim.Optimizer:
     name = config["name"]
     if name == "sgd":
         return torch.optim.SGD(
@@ -25,29 +25,31 @@ def get_optim(config, model):
             lr=config["learning_rate"],
             momentum=config["momentum"],
         )
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
-def get_loss_fn(config):
+def get_loss_fn(config: dict) -> nn.Module:
     name = config["name"]
     if name == "ce":
         return CrossEntropyLoss(config)
     if name == "dist-ce":
         return DistCrossEntropyLoss(config)
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
-def get_activation(config):
+def get_activation(config: dict) -> nn.Module:
     name = config["name"]
     if name == "relu":
         return nn.ReLU()
     if name == "tanh":
         return nn.Tanh()
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
 class Capture(nn.Module):
-    def forward(self, input):
+    state: Optional[Tensor]
+
+    def forward(self, input: Tensor) -> Tensor:
         self.state = input
         if isinstance(self.state, tuple):
             self.state = self.state[0]
@@ -101,7 +103,9 @@ rand_likes = {
 class Dropout(nn.Linear):
     input: Tensor
 
-    def __init__(self, config, layer: int, input_dim: int, output_dim: int) -> None:
+    def __init__(
+        self, config: dict, layer: int, input_dim: int, output_dim: int
+    ) -> None:
         super().__init__(input_dim, output_dim)
         self.std = config["std"] if layer in config["layers"] else 0
         self.dist = config["dist"]
@@ -174,7 +178,7 @@ class MLP(nn.Sequential):
     _activation = lambda _, config: get_activation(config)
     _dropout = Dropout
 
-    def __init__(self, config, dataset: Dataset):
+    def __init__(self, config: dict, dataset: Dataset) -> None:
         num_layers: int = config["num_layers"]
         hidden_dim: int = config["hidden_dim"]
         output_dim: int = int(np.prod(dataset.input_shape))
@@ -210,7 +214,7 @@ class MLP(nn.Sequential):
 
 
 class CrossEntropyLoss(nn.Module):
-    def __init__(self, config) -> None:
+    def __init__(self, config: dict) -> None:
         super().__init__()
         self.diff = config["diff"]
 
@@ -253,7 +257,7 @@ class DropoutNormCrossEntropyLoss(DiffLoss):
 DistTensor = Tuple[Tensor, Optional[Tensor]]
 
 
-def get_dist_activation(config):
+def get_dist_activation(config: dict) -> nn.Module:
     name = config["name"]
     if name == "relu":
         return DistReLU()

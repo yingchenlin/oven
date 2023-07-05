@@ -1,13 +1,12 @@
-import torch
-import torch.utils.data
-import torchvision
+from __future__ import annotations
 
-import copy
-import functools
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+
 from typing import Tuple
 
 
-def get_dataset(config):
+def get_dataset(config: dict) -> Dataset:
     name = config["name"]
     path = f"datasets/{name}"
     if name == "mnist":
@@ -18,111 +17,108 @@ def get_dataset(config):
         return CIFAR100(config, path)
     if name == "svhn":
         return SVHN(config, path)
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
-def get_dataloader(config, dataset):
-    return torch.utils.data.DataLoader(
-        dataset,
-        batch_size=config["batch_size"],
-        shuffle=config["shuffle"],
-    )
+Shape = Tuple[int, ...]
 
 
 class Dataset:
-    input_shape: Tuple[int, ...]
+    input_shape: Shape
     num_classes: int
 
-    def __init__(self, config, path):
-        train_transform = get_transform(config["transform"], self.input_shape, True)
-        test_transform = get_transform(config["transform"], self.input_shape, False)
-        self.train_dataset = self._get_dataset(path, True, train_transform)
-        self.test_dataset = self._get_dataset(path, False, test_transform)
-        self.train_dataloader = get_dataloader(config["train"], self.train_dataset)
-        self.test_dataloader = get_dataloader(config["test"], self.test_dataset)
-
-    def _get_dataset(self, path, train, transform):
-        dataset = copy.copy(self._load_dataset(path, train))
-        dataset.transform = transform
-        dataset.transforms = torchvision.datasets.vision.StandardTransform(
-            transform, None
+    def __init__(self, config: dict, path: str) -> None:
+        self.train_dataset = self._get_dataset(config, path, True)
+        self.test_dataset = self._get_dataset(config, path, False)
+        self.train_dataloader = self._get_dataloader(
+            config["train"], self.train_dataset
         )
+        self.test_dataloader = self._get_dataloader(config["test"], self.test_dataset)
+
+    @classmethod
+    def _get_dataset(
+        cls, config: dict, path: str, train: bool
+    ) -> datasets.VisionDataset:
+        dataset = cls._load_dataset(path, train)
+        dataset.transform = get_transform(config["transform"], cls.input_shape, train)
         return dataset
 
-    @staticmethod
-    def _load_dataset(path, train):
-        raise NotImplementedError()
+    @classmethod
+    def _get_dataloader(
+        cls, config: dict, dataset: datasets.VisionDataset
+    ) -> DataLoader:
+        return DataLoader(
+            dataset,
+            batch_size=config["batch_size"],
+            shuffle=config["shuffle"],
+        )
+
+    @classmethod
+    def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
+        raise NotImplementedError
 
 
-def get_normalize(config, input_shape):
-    return torchvision.transforms.Normalize(
+def get_normalize(config: dict, input_shape: Shape) -> transforms.Normalize:
+    return transforms.Normalize(
         [config["mean"]] * input_shape[0],
         [config["std"]] * input_shape[0],
     )
 
 
-def get_transform(config, input_shape, training):
-    transforms = []
+def get_transform(
+    config: dict, input_shape: Shape, training: bool
+) -> transforms.Compose:
+    layers = []
     if training:
         if "flip" in config:
-            transforms.append(
-                torchvision.transforms.RandomHorizontalFlip(**config["flip"])
-            )
+            layers.append(transforms.RandomHorizontalFlip(**config["flip"]))
         if "crop" in config:
-            transforms.append(
-                torchvision.transforms.RandomCrop(
-                    size=input_shape[1:], **config["crop"]
-                )
-            )
+            layers.append(transforms.RandomCrop(size=input_shape[1:], **config["crop"]))
         if "erase" in config:
-            transforms.append(torchvision.transforms.RandomErasing(**config["rotate"]))
+            layers.append(transforms.RandomErasing(**config["erase"]))
         if "rotate" in config:
-            transforms.append(torchvision.transforms.RandomRotation(**config["rotate"]))
+            layers.append(transforms.RandomRotation(**config["rotate"]))
         if "affine" in config:
-            transforms.append(torchvision.transforms.RandomAffine(**config["affine"]))
+            layers.append(transforms.RandomAffine(**config["affine"]))
         if "color" in config:
-            transforms.append(torchvision.transforms.ColorJitter(**config["color"]))
-    transforms.append(torchvision.transforms.ToTensor())
-    transforms.append(get_normalize(config["normalize"], input_shape))
-    return torchvision.transforms.Compose(transforms)
+            layers.append(transforms.ColorJitter(**config["color"]))
+    layers.append(transforms.ToTensor())
+    layers.append(get_normalize(config["normalize"], input_shape))
+    return transforms.Compose(layers)
 
 
 class MNIST(Dataset):
     input_shape = (1, 32, 32)
     num_classes = 10
 
-    @staticmethod
-    @functools.lru_cache
-    def _load_data(path, train):
-        return torchvision.datasets.MNIST(path, train=train, download=True)
+    @classmethod
+    def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
+        return datasets.MNIST(path, train=train, download=True)
 
 
 class CIFAR10(Dataset):
     input_shape = (3, 32, 32)
     num_classes = 10
 
-    @staticmethod
-    @functools.lru_cache
-    def _load_dataset(path, train):
-        return torchvision.datasets.CIFAR10(path, train=train, download=True)
+    @classmethod
+    def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
+        return datasets.CIFAR10(path, train=train, download=True)
 
 
 class CIFAR100(Dataset):
     input_shape = (3, 32, 32)
     num_classes = 100
 
-    @staticmethod
-    @functools.lru_cache
-    def _load_dataset(path, train):
-        return torchvision.datasets.CIFAR100(path, train=train, download=True)
+    @classmethod
+    def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
+        return datasets.CIFAR100(path, train=train, download=True)
 
 
 class SVHN(Dataset):
     input_shape = (3, 32, 32)
     num_classes = 10
 
-    @staticmethod
-    @functools.lru_cache
-    def _load_dataset(path, train):
+    @classmethod
+    def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
         split = "train" if train else "test"
-        return torchvision.datasets.SVHN(path, split=split, download=True)
+        return datasets.SVHN(path, split=split, download=True)
