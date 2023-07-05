@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m ml.run -g test
+python3 -m ml.run -g test -d cuda
