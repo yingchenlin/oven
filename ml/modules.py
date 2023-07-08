@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -8,7 +10,7 @@ from typing import Tuple, Optional
 from ml.datasets import Dataset
 
 
-def get_model(config: dict, dataset: Dataset) -> nn.Module:
+def get_model(config: dict, dataset: Dataset) -> MLP:
     name = config["name"]
     if name == "mlp":
         return MLP(config, dataset)
@@ -111,7 +113,6 @@ class Dropout(nn.Linear):
         self.dist = config["dist"]
         self.scheme = config["scheme"]
         self.scale = config["scale"]
-        self.detach = config["detach"]
         self.target = config["target"]
         assert self.scheme in ("dropout", "reg_loss")
 
@@ -121,7 +122,6 @@ class Dropout(nn.Linear):
             "dist": self.dist,
             "scheme": self.scheme,
             "scale": self.scale,
-            "detach": self.detach,
             "target": self.target,
         }
         return " ".join([f"{k}={v}" for k, v in m.items()])
@@ -133,8 +133,6 @@ class Dropout(nn.Linear):
         return x
 
     def _mean(self, x: Tensor) -> Tensor:
-        if self.detach:
-            x = x.detach()
         if self.scale == "element":
             return x
         elif self.scale == "sample":
@@ -159,18 +157,16 @@ class Dropout(nn.Linear):
                 raise NotImplementedError
         return F.linear(x, w, b)
 
-    """
     def reg_loss(self, prob: Tensor, jacob: Tensor) -> Tuple[Tensor, Tensor]:
         loss = torch.zeros(())
         jacob = jacob @ self.weight
+        hess = prob.diag_embed() - outer(prob)
         if self.training and self.std != 0.0:
             var = self._mean(self.input.square())
             cov = torch.einsum("sbik,sbjk,sbk->sbij", jacob, jacob, var)
-            hess = prob.diag_embed() + outer(prob) * (self.diff - 1)
             loss = torch.einsum("sbij,sbij->sb", hess, cov) * (self.std**2 / 2)
         jacob = jacob * (self.input > 0).unsqueeze(-2)
         return loss, jacob
-    """
 
 
 class MLP(nn.Sequential):
@@ -198,7 +194,6 @@ class MLP(nn.Sequential):
 
         super().__init__(*layers)
 
-    """
     def reg_loss(self, outputs: Tensor) -> Tensor:
         losses = torch.zeros(())
         if self.training:
@@ -208,9 +203,8 @@ class MLP(nn.Sequential):
                 jacob = torch.ones_like(prob).diag_embed()
                 for m in reversed(dropouts):
                     loss, jacob = m.reg_loss(prob, jacob)
-                    losses += loss
+                    losses = losses + loss
         return losses
-    """
 
 
 class CrossEntropyLoss(nn.Module):

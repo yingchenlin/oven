@@ -5,7 +5,7 @@ import itertools
 import functools
 import torch.multiprocessing as mp
 
-from ml.engine import Engine
+from ml.engine import Task
 
 
 def get_samples(text):
@@ -76,8 +76,14 @@ if __name__ == "__main__":
             seed = random.getrandbits(31)
             label_ = f"{label}_{sample}"
             path = f"{args.outputs}/{label_}"
-            task = Engine(
-                config, seed, label_, path, args.device, args.checkpoint, args.verbose
+            task = Task(
+                config=config,
+                seed=seed,
+                device=args.device,
+                verbose=args.verbose,
+                label=label_,
+                path=path,
+                checkpoint=args.checkpoint,
             )
             tasks.append(task)
 

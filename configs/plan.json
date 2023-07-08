@@ -2,52 +2,27 @@
     "base": "configs/base.json",
     "groups": {
         "test": {
-            "test": "dist",
+            "dropout_scheme": "base",
+            "dropout_std": "std.5",
             "dropout_scale": [
-                "b",
-                "e"
+                "e",
+                "b"
             ]
+        },
+        "none": {
+            "dropout_scheme": "none"
         },
         "sweep": {
             "dataset": true,
             "activation": "relu",
             "dropout_scheme": true,
             "dropout_target": "x",
-            "dropout_std": [
-                "std.5"
-            ],
+            "dropout_std": "std.5",
             "loss_fn": "ce",
             "num_samples": "x16"
         }
     },
     "factors": {
-        "test": {
-            "none": {
-                "model": {
-                    "dropout": {
-                        "std": 0
-                    }
-                }
-            },
-            "base": {},
-            "dist": {
-                "model": {
-                    "name": "dist-mlp"
-                },
-                "fit": {
-                    "loss_fn": {
-                        "name": "dist-ce"
-                    }
-                }
-            },
-            "reg_loss": {
-                "model": {
-                    "dropout": {
-                        "scheme": "reg_loss"
-                    }
-                }
-            }
-        },
         "dataset": {
             "c10": {
                 "dataset": {
@@ -77,14 +52,41 @@
             }
         },
         "dropout_scheme": {
-            "d": {
+            "none": {
+                "model": {
+                    "dropout": {
+                        "std": 0
+                    }
+                }
+            },
+            "base": {
                 "model": {
                     "dropout": {
                         "scheme": "dropout"
                     }
                 }
             },
-            "r": {
+            "mean": {
+                "model": {
+                    "dropout": {
+                        "scheme": "dropout"
+                    }
+                },
+                "fit": {
+                    "num_samples": 16
+                }
+            },
+            "dist": {
+                "model": {
+                    "name": "dist-mlp"
+                },
+                "fit": {
+                    "loss_fn": {
+                        "name": "dist-ce"
+                    }
+                }
+            },
+            "quad": {
                 "model": {
                     "dropout": {
                         "scheme": "reg_loss"
@@ -122,22 +124,6 @@
                 }
             }
         },
-        "dropout_detach": {
-            "g": {
-                "model": {
-                    "dropout": {
-                        "detach": false
-                    }
-                }
-            },
-            "sg": {
-                "model": {
-                    "dropout": {
-                        "detach": true
-                    }
-                }
-            }
-        },
         "dropout_target": {
             "x": {
                 "model": {
@@ -155,31 +141,10 @@
             }
         },
         "dropout_std": {
-            "std.1": {
-                "model": {
-                    "dropout": {
-                        "std": 0.1
-                    }
-                }
-            },
-            "std.2": {
-                "model": {
-                    "dropout": {
-                        "std": 0.2
-                    }
-                }
-            },
             "std.3": {
                 "model": {
                     "dropout": {
                         "std": 0.3
-                    }
-                }
-            },
-            "std.4": {
-                "model": {
-                    "dropout": {
-                        "std": 0.4
                     }
                 }
             },
@@ -200,37 +165,7 @@
             "std1": {
                 "model": {
                     "dropout": {
-                        "std": 1
-                    }
-                }
-            }
-        },
-        "dropout_diff": {
-            "diff.25": {
-                "model": {
-                    "dropout": {
-                        "diff": 0.25
-                    }
-                }
-            },
-            "diff.5": {
-                "model": {
-                    "dropout": {
-                        "diff": 0.5
-                    }
-                }
-            },
-            "diff.75": {
-                "model": {
-                    "dropout": {
-                        "diff": 0.75
-                    }
-                }
-            },
-            "diff1": {
-                "model": {
-                    "dropout": {
-                        "diff": 1.0
+                        "std": 1.0
                     }
                 }
             }
@@ -363,13 +298,6 @@
                 "fit": {
                     "optim": {
                         "learning_rate": 5e-3
-                    }
-                }
-            },
-            "lr1e-2": {
-                "fit": {
-                    "optim": {
-                        "learning_rate": 1e-2
                     }
                 }
             }
