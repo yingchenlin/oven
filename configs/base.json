@@ -44,8 +44,7 @@
         "num_samples": 1,
         "checkpoint_interval": 20,
         "loss_fn": {
-            "name": "ce",
-            "diff": 0.0
+            "name": "ce"
         },
         "optim": {
             "name": "sgd",

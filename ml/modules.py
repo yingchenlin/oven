@@ -34,8 +34,10 @@ def get_loss_fn(config: dict) -> nn.Module:
     name = config["name"]
     if name == "ce":
         return CrossEntropyLoss(config)
-    if name == "dist-ce":
-        return DistCrossEntropyLoss(config)
+    if name == "quad-ce":
+        return QuadraticCrossEntropyLoss(config)
+    if name == "mc-ce":
+        return MonteCarloCrossEntropyLoss(config)
     raise NotImplementedError
 
 
@@ -210,7 +212,6 @@ class MLP(nn.Sequential):
 class CrossEntropyLoss(nn.Module):
     def __init__(self, config: dict) -> None:
         super().__init__()
-        self.diff = config["diff"]
 
     def forward(self, outputs, targets):
         return cross_entropy(outputs, targets)
@@ -305,12 +306,31 @@ class DistMLP(MLP):
     _dropout = DistDropout
 
 
-class DistCrossEntropyLoss(CrossEntropyLoss):
+class QuadraticCrossEntropyLoss(CrossEntropyLoss):
     def forward(self, outputs: DistTensor, targets: Tensor) -> Tensor:
         (m, k), i = outputs, targets
-        L = cross_entropy(m, i)
+        losses = cross_entropy(m, i)
         if k is not None:
-            p = m.softmax(-1)
-            h = p.diag_embed() - outer(p)
-            L = L + (k * h).sum((-2, -1)) * 0.5
-        return L
+            prob = m.softmax(-1)
+            hess = prob.diag_embed() - outer(prob)
+            losses = losses + (k * hess).sum((-2, -1)) * 0.5
+        return losses
+
+
+class MonteCarloCrossEntropyLoss(CrossEntropyLoss):
+    def __init__(self, config: dict) -> None:
+        super().__init__(config)
+        self.num_samples = config["num_samples"]
+
+    def forward(self, outputs: DistTensor, targets: Tensor) -> Tensor:
+        (m, k), i = outputs, targets  # m:sbc k:sbcc i:sb
+        if k is None:
+            return cross_entropy(m, i)
+
+        s, _ = torch.linalg.cholesky_ex(k)  # s:sbcc
+        d = torch.randn((self.num_samples, m.shape[-1]))  # d:nc
+        x = m.unsqueeze(-1) + s @ d.T  # x:sbcn
+
+        x = x.swapaxes(-2, -1)  # x:sbnc
+        i = i.unsqueeze(-1)  # i:sb1
+        return cross_entropy(x, i).mean(-1)  # x:sb

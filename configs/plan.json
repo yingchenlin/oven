@@ -2,11 +2,10 @@
     "base": "configs/base.json",
     "groups": {
         "test": {
-            "dropout_scheme": "base",
-            "dropout_std": "std.5",
+            "dropout_scheme": "dist",
+            "dropout_std": "std.7",
             "dropout_scale": [
-                "e",
-                "b"
+                "e"
             ]
         },
         "none": {
@@ -82,7 +81,8 @@
                 },
                 "fit": {
                     "loss_fn": {
-                        "name": "dist-ce"
+                        "name": "mc-ce",
+                        "num_samples": 1000
                     }
                 }
             },
