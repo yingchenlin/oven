@@ -282,9 +282,15 @@ class DistDropout(Dropout):
         if self.std != 0:
             assert self.target == "input"
             if k is None:
-                k = torch.zeros_like(m).diag_embed()
-            d = (m.square() + diag(k)) * self.std**2
-            k = k + self._mean(d).diag_embed()
+                # optimized route
+                d = self._mean(m.square()) * self.std**2
+                w, b = self.weight, self.bias
+                m = F.linear(m, w, b)
+                k = (w * d.unsqueeze(-2)) @ w.T
+                return m, k
+            else:
+                d = self._mean(m.square() + diag(k)) * self.std**2
+                k = k + d.diag_embed()
         # linear
         w, b = self.weight, self.bias
         m = F.linear(m, w, b)
@@ -305,6 +311,6 @@ class DistCrossEntropyLoss(CrossEntropyLoss):
         L = cross_entropy(m, i)
         if k is not None:
             p = m.softmax(-1)
-            h = p.diag_embed() + outer(p)
+            h = p.diag_embed() - outer(p)
             L = L + (k * h).sum((-2, -1)) * 0.5
         return L
