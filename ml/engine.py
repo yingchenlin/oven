@@ -160,6 +160,7 @@ class Task:
         self.engine = Engine(self.config, self.seed, self.device, self.verbose)
         logging.info(f"{self.label} config={self.config}")
         logging.info(f"{self.label} model={self.engine.model}")
+        logging.info(f"{self.label} loss_fn={self.engine.loss_fn}")
 
         while self.epoch < self.num_epochs:
             self.epoch += 1

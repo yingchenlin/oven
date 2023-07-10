@@ -30,7 +30,12 @@ class Metrics:
 
     def add_ranks(self, outputs: Tensor, targets: Tensor):
         if isinstance(outputs, tuple):
-            outputs = outputs[0]
+            m, k = outputs
+            if k is not None:
+                q, _ = torch.linalg.cholesky_ex(k)
+                d = torch.randn(m.shape[-1], device=m.device)
+                m = m + q @ d
+            outputs = m
         ranks = get_ranks(outputs, targets)
         for k in self.topks:
             self._agg_scalar(f"top{k}", "avg", ranks <= k)

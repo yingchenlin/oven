@@ -280,7 +280,7 @@ class DistDropout(Dropout):
     def forward(self, input: DistTensor) -> DistTensor:
         m, k = input
         # dropout
-        if self.std != 0:
+        if self.training and self.std != 0:
             assert self.target == "input"
             if k is None:
                 # optimized route
@@ -317,20 +317,25 @@ class QuadraticCrossEntropyLoss(CrossEntropyLoss):
         return losses
 
 
+def monte_carlo(n: int, m: Tensor, k: Tensor) -> Tensor:
+    q, _ = torch.linalg.cholesky_ex(k)
+    d = torch.randn(m.shape + (n,), device=m.device)
+    return m.unsqueeze(-1) + q @ d
+
+
 class MonteCarloCrossEntropyLoss(CrossEntropyLoss):
     def __init__(self, config: dict) -> None:
         super().__init__(config)
         self.num_samples = config["num_samples"]
 
+    def extra_repr(self) -> str:
+        return f"num_samples={self.num_samples}"
+
     def forward(self, outputs: DistTensor, targets: Tensor) -> Tensor:
-        (m, k), i = outputs, targets  # m:sbc k:sbcc i:sb
+        (m, k), i = outputs, targets
         if k is None:
             return cross_entropy(m, i)
-
-        s, _ = torch.linalg.cholesky_ex(k)  # s:sbcc
-        d = torch.randn((self.num_samples, m.shape[-1]))  # d:nc
-        x = m.unsqueeze(-1) + s @ d.T  # x:sbcn
-
-        x = x.swapaxes(-2, -1)  # x:sbnc
-        i = i.unsqueeze(-1)  # i:sb1
-        return cross_entropy(x, i).mean(-1)  # x:sb
+        x = monte_carlo(self.num_samples, m, k)
+        x = x.swapaxes(-2, -1)
+        i = i.unsqueeze(-1)
+        return cross_entropy(x, i).mean(-1)
