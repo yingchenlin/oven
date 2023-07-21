@@ -101,18 +101,6 @@ class Engine:
         return self.metrics.get()
 
     def loss(self, inputs: Tensor, outputs: Tensor, targets: Tensor) -> Tensor:
-        """
-        if isinstance(self.loss_fn, DiffLoss):
-            if self.model.training:
-                self.model.eval()
-                mean = self.model(inputs)
-                diff = outputs - mean
-                self.model.train()
-            else:
-                mean = outputs
-                diff = torch.zeros_like(mean)
-            outputs = (mean, diff)
-        """
         losses = self.loss_fn(outputs, targets)
         losses = losses + self.model.reg_loss(outputs)
         return losses

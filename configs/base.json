@@ -25,7 +25,8 @@
             "name": "relu"
         },
         "dropout": {
-            "std": 0.5,
+            "std": 0.7,
+            "diff": 0.0,
             "layers": [
                 0,
                 1,

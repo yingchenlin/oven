@@ -5,7 +5,7 @@ from torch import nn, Tensor
 from collections import namedtuple
 from typing import Dict
 
-from ml.modules import Capture
+from ml.modules import Capture, sample
 
 
 def get_metrics(config: dict) -> Metrics:
@@ -31,11 +31,7 @@ class Metrics:
     def add_ranks(self, outputs: Tensor, targets: Tensor):
         if isinstance(outputs, tuple):
             m, k = outputs
-            if k is not None:
-                q, _ = torch.linalg.cholesky_ex(k)
-                d = torch.randn(m.shape[-1], device=m.device)
-                m = m + q @ d
-            outputs = m
+            outputs = sample(m, k)
         ranks = get_ranks(outputs, targets)
         for k in self.topks:
             self._agg_scalar(f"top{k}", "avg", ranks <= k)

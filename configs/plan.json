@@ -4,21 +4,10 @@
         "test": {
             "dropout_scheme": "dist",
             "dropout_std": "std.7",
-            "dropout_scale": [
-                "e"
-            ]
+            "dropout_scale": "b"
         },
         "none": {
             "dropout_scheme": "none"
-        },
-        "sweep": {
-            "dataset": true,
-            "activation": "relu",
-            "dropout_scheme": true,
-            "dropout_target": "x",
-            "dropout_std": "std.5",
-            "loss_fn": "ce",
-            "num_samples": "x16"
         }
     },
     "factors": {
@@ -82,7 +71,7 @@
                 "fit": {
                     "loss_fn": {
                         "name": "mc-ce",
-                        "num_samples": 1000
+                        "num_samples": 10000
                     }
                 }
             },
@@ -166,6 +155,43 @@
                 "model": {
                     "dropout": {
                         "std": 1.0
+                    }
+                }
+            }
+        },
+        "dropout_diff": {
+            "diff.2": {
+                "model": {
+                    "dropout": {
+                        "diff": 0.2
+                    }
+                }
+            },
+            "diff.3": {
+                "model": {
+                    "dropout": {
+                        "diff": 0.3
+                    }
+                }
+            },
+            "diff.5": {
+                "model": {
+                    "dropout": {
+                        "diff": 0.5
+                    }
+                }
+            },
+            "diff.7": {
+                "model": {
+                    "dropout": {
+                        "diff": 0.7
+                    }
+                }
+            },
+            "diff1": {
+                "model": {
+                    "dropout": {
+                        "diff": 1.0
                     }
                 }
             }

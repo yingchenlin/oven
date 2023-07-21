@@ -56,7 +56,8 @@ class Capture(nn.Module):
     def forward(self, input: Tensor) -> Tensor:
         self.state = input
         if isinstance(self.state, tuple):
-            self.state = self.state[0]
+            m, k = self.state
+            self.state = sample(m, k)
         if self.state.requires_grad:
             self.state.retain_grad()
         return input
@@ -81,6 +82,14 @@ def gaussian(z: Tensor) -> Tuple[Tensor, Tensor]:
 
 def cross_entropy(x: Tensor, i: Tensor) -> Tensor:
     return x.logsumexp(-1) - x.gather(-1, i.unsqueeze(-1)).squeeze(-1)
+
+
+def sample(m: Tensor, k: Tensor | None) -> Tensor:
+    if k is None:
+        return m
+    q, _ = torch.linalg.cholesky_ex(k)
+    d = torch.randn(m.shape + (1,), device=m.device)
+    return m + (q @ d).squeeze(-1)
 
 
 # MLP
@@ -159,10 +168,9 @@ class Dropout(nn.Linear):
                 raise NotImplementedError
         return F.linear(x, w, b)
 
-    def reg_loss(self, prob: Tensor, jacob: Tensor) -> Tuple[Tensor, Tensor]:
+    def reg_loss(self, hess: Tensor, jacob: Tensor) -> Tuple[Tensor, Tensor]:
         loss = torch.zeros(())
         jacob = jacob @ self.weight
-        hess = prob.diag_embed() - outer(prob)
         if self.training and self.std != 0.0:
             var = self._mean(self.input.square())
             cov = torch.einsum("sbik,sbjk,sbk->sbij", jacob, jacob, var)
@@ -194,17 +202,20 @@ class MLP(nn.Sequential):
         )
         layers.append(Capture())
 
+        self.scheme = config["dropout"]["scheme"]
+        self.diff = config["dropout"]["diff"]
+
         super().__init__(*layers)
 
     def reg_loss(self, outputs: Tensor) -> Tensor:
         losses = torch.zeros(())
-        if self.training:
-            dropouts = [m for m in self if isinstance(m, Dropout)]
-            if dropouts[0].scheme == "reg_loss":
-                prob = outputs.softmax(-1)
-                jacob = torch.ones_like(prob).diag_embed()
-                for m in reversed(dropouts):
-                    loss, jacob = m.reg_loss(prob, jacob)
+        if self.training and self.scheme == "reg_loss":
+            prob = outputs.softmax(-1)
+            hess = prob.diag_embed() - outer(prob) * (1 - self.diff)
+            jacob = torch.ones_like(prob).diag_embed()
+            for m in reversed(self):
+                if isinstance(m, Dropout):
+                    loss, jacob = m.reg_loss(hess, jacob)
                     losses = losses + loss
         return losses
 
@@ -216,36 +227,6 @@ class CrossEntropyLoss(nn.Module):
     def forward(self, outputs, targets):
         return cross_entropy(outputs, targets)
 
-
-"""
-class DiffLoss(Loss):
-    pass
-
-
-class DropoutNormCrossEntropyLoss(DiffLoss):
-    def __init__(self, config):
-        super().__init__(config)
-        self.kind = config["kind"]
-
-    def forward(self, outputs, targets):
-        mean, diff = outputs
-
-        if self.kind == "prob":
-            p = mean.softmax(-1)
-            return (
-                cross_entropy(mean, targets)
-                + ((diff.square() * p).sum(-1) - (diff * p).sum(-1).square()) * 0.5
-            )
-        elif self.kind == "mean":
-            return cross_entropy(mean, targets) + diff.square().mean(-1) * 0.5
-        elif self.kind == "even":
-            return (
-                cross_entropy(mean + diff, targets)
-                + cross_entropy(mean - diff, targets)
-            ) * 0.5
-
-        raise NotImplementedError()
-"""
 
 # DistMLP
 
