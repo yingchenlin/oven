@@ -2,15 +2,37 @@
     "base": "configs/base.json",
     "groups": {
         "test": {
-            "dropout_scheme": "dist",
+            "dropout_scheme": "quad",
             "dropout_std": "std.7",
-            "dropout_scale": "b"
+            "dropout_diff": [
+                "diff.2",
+                "diff.3"
+            ],
+            "dropout_scale": [
+                "e",
+                "b"
+            ]
         },
         "none": {
             "dropout_scheme": "none"
+        },
+        "tiny": {
+            "tiny": true,
+            "dropout_scheme": [
+                "mean",
+                "dist"
+            ]
         }
     },
     "factors": {
+        "tiny": {
+            "tiny": {
+                "model": {
+                    "num_layers": 3,
+                    "hidden_dim": 200
+                }
+            }
+        },
         "dataset": {
             "c10": {
                 "dataset": {

@@ -5,11 +5,10 @@ import torch
 import logging
 from tqdm import tqdm
 from torch import Tensor
-from torch.utils.data import DataLoader
-from typing import Dict, Iterator, Tuple
+from typing import Generator, Mapping, Tuple
 
 from ml.datasets import get_dataset
-from ml.modules import get_model, get_loss_fn, get_optim
+from ml.models import get_model, get_loss_fn, get_optim
 from ml.metrics import get_metrics
 
 
@@ -48,13 +47,32 @@ class Engine:
         state_dict = self.model.state_dict()
         torch.save(state_dict, path)
 
-    def train(self) -> Dict[str, float]:
-        self.model.train()
-        self.loss_fn.train()
-
+    def run(self, train: bool, moments=False) -> Mapping[str, float]:
         self.metrics.reset()
+        if not train:
+            self.metrics.add_params(self.model)
 
-        dataloader = self.dataset.train_dataloader
+        self.model.train(train)
+        self.loss_fn.train(train)
+
+        for _, outputs, targets, losses in self.loop(train):
+            if train:
+                self.optim.step()
+
+            self.metrics.add_losses(losses)
+            self.metrics.add_ranks(outputs, targets)
+            self.metrics.add_states(self.model, moments=moments)
+
+        return self.metrics.get_scalars()
+
+    def loop(
+        self, train: bool
+    ) -> Generator[Tuple[Tensor, Tensor, Tensor, Tensor], None, None]:
+        if train:
+            dataloader = self.dataset.train_dataloader
+        else:
+            dataloader = self.dataset.test_dataloader
+
         if self.verbose:
             dataloader = tqdm(dataloader, leave=False)
 
@@ -64,46 +82,10 @@ class Engine:
 
             self.optim.zero_grad()
             outputs = self.model(inputs)
-            losses = self.loss(inputs, outputs, targets)
-            losses.mean().backward()
-            self.optim.step()
-
-            self.metrics.add_losses(losses)
-            self.metrics.add_ranks(outputs, targets)
-            self.metrics.add_states(self.model)
-
-        return self.metrics.get()
-
-    def eval(self) -> Dict[str, float]:
-        self.model.eval()
-        self.loss_fn.eval()
-
-        self.metrics.reset()
-        self.metrics.add_params(self.model)
-
-        dataloader = self.dataset.test_dataloader
-        if self.verbose:
-            dataloader = tqdm(dataloader, leave=False)
-
-        for inputs, targets in dataloader:
-            inputs = inputs.to(self.device).expand(self.num_samples, *inputs.shape)
-            targets = targets.to(self.device).expand(self.num_samples, *targets.shape)
-
-            self.model.zero_grad()
-            outputs = self.model(inputs)
-            losses = self.loss(inputs, outputs, targets)
+            losses = self.loss_fn(outputs, targets) + self.model.reg_loss(outputs)
             losses.mean().backward()
 
-            self.metrics.add_losses(losses)
-            self.metrics.add_ranks(outputs, targets)
-            self.metrics.add_states(self.model)
-
-        return self.metrics.get()
-
-    def loss(self, inputs: Tensor, outputs: Tensor, targets: Tensor) -> Tensor:
-        losses = self.loss_fn(outputs, targets)
-        losses = losses + self.model.reg_loss(outputs)
-        return losses
+            yield (inputs, outputs, targets, losses)
 
 
 class Task:
@@ -153,8 +135,8 @@ class Task:
         while self.epoch < self.num_epochs:
             self.epoch += 1
 
-            train_metrics = self.engine.train()
-            test_metrics = self.engine.eval()
+            train_metrics = self.engine.run(train=True)
+            test_metrics = self.engine.run(train=False)
 
             self.output(train_metrics, test_metrics)
 

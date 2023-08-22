@@ -25,19 +25,15 @@
             "name": "relu"
         },
         "dropout": {
-            "std": 0.7,
-            "diff": 0.0,
-            "layers": [
-                0,
-                1,
-                2,
-                3,
-                4
+            "std": [
+                0.7,
+                0.7,
+                0.7,
+                0.7,
+                0.7
             ],
             "dist": "normal",
-            "scheme": "dropout",
-            "scale": "element",
-            "target": "input"
+            "mean": "element"
         }
     },
     "fit": {

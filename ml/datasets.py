@@ -3,6 +3,8 @@ from __future__ import annotations
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+import copy
+from functools import lru_cache
 from typing import Tuple
 
 
@@ -17,7 +19,7 @@ def get_dataset(config: dict) -> Dataset:
         return CIFAR100(config, path)
     if name == "svhn":
         return SVHN(config, path)
-    raise NotImplementedError
+    raise NotImplementedError(name)
 
 
 Shape = Tuple[int, ...]
@@ -40,6 +42,7 @@ class Dataset:
         cls, config: dict, path: str, train: bool
     ) -> datasets.VisionDataset:
         dataset = cls._load_dataset(path, train)
+        dataset = copy.copy(dataset)
         dataset.transform = get_transform(config["transform"], cls.input_shape, train)
         return dataset
 
@@ -55,7 +58,7 @@ class Dataset:
 
     @classmethod
     def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
-        raise NotImplementedError
+        raise NotImplementedError(cls.__name__)
 
 
 def get_normalize(config: dict, input_shape: Shape) -> transforms.Normalize:
@@ -92,6 +95,7 @@ class MNIST(Dataset):
     num_classes = 10
 
     @classmethod
+    @lru_cache
     def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
         return datasets.MNIST(path, train=train, download=True)
 
@@ -101,6 +105,7 @@ class CIFAR10(Dataset):
     num_classes = 10
 
     @classmethod
+    @lru_cache
     def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
         return datasets.CIFAR10(path, train=train, download=True)
 
@@ -110,6 +115,7 @@ class CIFAR100(Dataset):
     num_classes = 100
 
     @classmethod
+    @lru_cache
     def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
         return datasets.CIFAR100(path, train=train, download=True)
 
@@ -119,6 +125,7 @@ class SVHN(Dataset):
     num_classes = 10
 
     @classmethod
+    @lru_cache
     def _load_dataset(cls, path: str, train: bool) -> datasets.VisionDataset:
         split = "train" if train else "test"
         return datasets.SVHN(path, split=split, download=True)
