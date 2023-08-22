@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -37,10 +35,16 @@ dists: Mapping[str, Callable[[Tensor, float], Tensor]] = {
 }
 
 means: Mapping[str, Callable[[Tensor], Tensor]] = {
+    # general: [sample, batch, feature...]
     "element": lambda x: x,
-    "sample": lambda x: x.mean(-1, keepdim=True).expand_as(x),
-    "feature": lambda x: x.mean(-2, keepdim=True).expand_as(x),
-    "batch": lambda x: x.mean([-2, -1], keepdim=True).expand_as(x),
+    "sample": lambda x: x.mean(tuple(range(2, x.dim())), keepdim=True).expand_as(x),
+    "feature": lambda x: x.mean([0, 1], keepdim=True).expand_as(x),
+    "batch": lambda x: x.mean(tuple(range(x.dim())), keepdim=True).expand_as(x),
+    # cnn: [sample, batch, channel, height, width]
+    "sample-pixel-2d": lambda x: x.mean(2, keepdim=True).expand_as(x),
+    "sample-channel-2d": lambda x: x.mean([3, 4], keepdim=True).expand_as(x),
+    "pixel-2d": lambda x: x.mean([0, 1, 2], keepdim=True).expand_as(x),
+    "channel-2d": lambda x: x.mean([0, 1, 3, 4], keepdim=True).expand_as(x),
 }
 
 
