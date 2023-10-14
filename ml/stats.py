@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 import tqdm
 from ml.engine import Engine
-from ml.modules import Capture
+from ml.models import Capture
 from torch import Tensor
 from typing import Mapping
 

@@ -1,8 +1,12 @@
-import abc
 import numpy as np
 import torch
 from torch import Tensor, nn
 from typing import Optional, Tuple, Union
+
+
+def one_hot(t: Tensor, x: Tensor) -> Tensor:
+    assert t.shape == x.shape[:-1]
+    return nn.functional.one_hot(t, x.shape[-1])
 
 
 def outer(x: Tensor) -> Tensor:
@@ -25,23 +29,21 @@ def cross_entropy(x: Tensor, i: Tensor) -> Tensor:
     return x.logsumexp(-1) - x.gather(-1, i.unsqueeze(-1)).squeeze(-1)
 
 
-class CrossEntropyLoss(nn.Module):
-    def __init__(self, config: dict) -> None:
-        super().__init__()
-
-    def forward(self, outputs, targets):
-        return cross_entropy(outputs, targets)
-
-
-DistTensor = Tuple[Tensor, Optional[Tensor]]
-
-
 def sample(m: Tensor, k: Optional[Tensor], n: int) -> Tensor:
     if k is None:
         return m
     q, _ = torch.linalg.cholesky_ex(k)
     d = torch.randn(m.shape + (n,), device=m.device)
     return m.unsqueeze(-1) + q @ d
+
+
+def gather(x: Tensor, i: Tensor) -> Tensor:
+    return x.gather(-1, i.unsqueeze(-1)).squeeze(-1)
+
+
+Shape = Tuple[int, ...]
+
+DistTensor = Tuple[Tensor, Optional[Tensor]]
 
 
 class Capture(nn.Module):
@@ -62,9 +64,6 @@ class Capture(nn.Module):
         return self.state, grad
 
 
-class Model(abc.ABC):
-    def forward(self, inputs: Tensor) -> Tensor:
-        raise NotImplementedError
-
+class Regulated(nn.Module):
     def reg_loss(self, outputs: Tensor) -> Tensor:
-        return torch.zeros(())
+        raise NotImplementedError

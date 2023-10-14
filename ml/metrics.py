@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import torch
 from dataclasses import dataclass
 from torch import nn, Tensor
@@ -136,9 +137,11 @@ class TensorAgg(Agg):
     }
 
     def add(self, values: Tensor) -> None:
+        shape = values.shape
         values = values.detach()
-        self.num += values.shape[0] * values.shape[1]
-        self.sum = self.sum + self.transform.fwd(values).sum((0, 1))
+        values = self.transform.fwd(values)
+        self.num += int(np.prod(shape[:-1]))
+        self.sum = self.sum + values.sum(tuple(range(len(shape) - 1)))
 
     def get(self) -> Tensor:
         mean = self.sum / (self.num + 1e-8)

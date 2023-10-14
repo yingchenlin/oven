@@ -1,38 +1,27 @@
 {
     "base": "configs/base.json",
     "groups": {
-        "test": {
+        "base": {
+            "dataset": "c100",
             "dropout_scheme": "quad",
             "dropout_std": "std.7",
-            "dropout_diff": [
-                "diff.2",
-                "diff.3"
-            ],
-            "dropout_scale": [
+            "dropout_mean": [
                 "e",
                 "b"
             ]
         },
-        "none": {
-            "dropout_scheme": "none"
+        "bern": {
+            "dataset": true,
+            "dropout_scheme": "bern",
+            "dropout_std": "std.7",
+            "dropout_mean": "e"
         },
-        "tiny": {
-            "tiny": true,
-            "dropout_scheme": [
-                "mean",
-                "dist"
-            ]
+        "none": {
+            "dataset": true,
+            "dropout_scheme": "none"
         }
     },
     "factors": {
-        "tiny": {
-            "tiny": {
-                "model": {
-                    "num_layers": 3,
-                    "hidden_dim": 200
-                }
-            }
-        },
         "dataset": {
             "c10": {
                 "dataset": {
@@ -45,45 +34,32 @@
                 }
             }
         },
-        "activation": {
-            "relu": {
-                "model": {
-                    "activation": {
-                        "name": "relu"
-                    }
-                }
-            },
-            "tanh": {
-                "model": {
-                    "activation": {
-                        "name": "tanh"
-                    }
-                }
-            }
-        },
         "dropout_scheme": {
             "none": {
                 "model": {
                     "dropout": {
-                        "std": 0
+                        "std": 0.0
                     }
                 }
             },
-            "base": {
-                "model": {
-                    "dropout": {
-                        "scheme": "dropout"
-                    }
-                }
-            },
+            "base": {},
             "mean": {
-                "model": {
-                    "dropout": {
-                        "scheme": "dropout"
-                    }
-                },
                 "fit": {
                     "num_samples": 16
+                }
+            },
+            "bern": {
+                "model": {
+                    "dropout": {
+                        "dist": "bernoulli"
+                    }
+                }
+            },
+            "hinge": {
+                "fit": {
+                    "loss_fn": {
+                        "name": "hinge"
+                    }
                 }
             },
             "dist": {
@@ -99,66 +75,41 @@
             },
             "quad": {
                 "model": {
-                    "dropout": {
-                        "scheme": "reg_loss"
-                    }
+                    "name": "reg-mlp"
                 }
             }
         },
-        "dropout_scale": {
+        "dropout_mean": {
             "e": {
                 "model": {
                     "dropout": {
-                        "scale": "element"
+                        "mean": "element"
                     }
                 }
             },
             "s": {
                 "model": {
                     "dropout": {
-                        "scale": "sample"
+                        "mean": "sample"
                     }
                 }
             },
             "f": {
                 "model": {
                     "dropout": {
-                        "scale": "feature"
+                        "mean": "feature"
                     }
                 }
             },
             "b": {
                 "model": {
                     "dropout": {
-                        "scale": "batch"
-                    }
-                }
-            }
-        },
-        "dropout_target": {
-            "x": {
-                "model": {
-                    "dropout": {
-                        "target": "input"
-                    }
-                }
-            },
-            "w": {
-                "model": {
-                    "dropout": {
-                        "target": "weight"
+                        "mean": "batch"
                     }
                 }
             }
         },
         "dropout_std": {
-            "std.3": {
-                "model": {
-                    "dropout": {
-                        "std": 0.3
-                    }
-                }
-            },
             "std.5": {
                 "model": {
                     "dropout": {

@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
+from ml.models.dropout import *
+from ml.models.losses import *
 from ml.models.mlp import *
 from ml.models.utils import *
 

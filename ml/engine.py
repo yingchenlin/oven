@@ -8,7 +8,7 @@ from torch import Tensor
 from typing import Generator, Mapping, Tuple
 
 from ml.datasets import get_dataset
-from ml.models import get_model, get_loss_fn, get_optim
+from ml.models import get_model, get_loss_fn, get_optim, Regulated
 from ml.metrics import get_metrics
 
 
@@ -77,15 +77,24 @@ class Engine:
             dataloader = tqdm(dataloader, leave=False)
 
         for inputs, targets in dataloader:
-            inputs = inputs.to(self.device).expand(self.num_samples, *inputs.shape)
-            targets = targets.to(self.device).expand(self.num_samples, *targets.shape)
+            inputs = self.format(inputs)
+            targets = self.format(targets)
 
             self.optim.zero_grad()
             outputs = self.model(inputs)
-            losses = self.loss_fn(outputs, targets) + self.model.reg_loss(outputs)
+            losses = self.loss_fn(outputs, targets)
+            if isinstance(self.model, Regulated):
+                losses = losses + self.model.reg_loss(outputs)
             losses.mean().backward()
 
             yield (inputs, outputs, targets, losses)
+
+    def format(self, x: Tensor) -> Tensor:
+        x = x.to(self.device)
+        if (n := self.num_samples) != 1:
+            times = [n] + [1] * (x.dim() - 1)
+            x = x.repeat(*times)
+        return x
 
 
 class Task:
@@ -128,8 +137,9 @@ class Task:
         )
 
         self.engine = Engine(self.config, self.seed, self.device, self.verbose)
+        num_params = sum(param.numel() for param in self.engine.model.parameters())
         logging.info(f"{self.label} config={self.config}")
-        logging.info(f"{self.label} model={self.engine.model}")
+        logging.info(f"{self.label} model={self.engine.model} num_params={num_params}")
         logging.info(f"{self.label} loss_fn={self.engine.loss_fn}")
 
         while self.epoch < self.num_epochs:

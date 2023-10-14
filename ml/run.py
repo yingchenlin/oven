@@ -93,7 +93,7 @@ if __name__ == "__main__":
         add_tasks(config, args.label)
     else:
         for group in args.groups.split(","):
-            for label, config in get_configs(args.plan, args.groups):
+            for label, config in get_configs(args.plan, group):
                 add_tasks(config, label)
 
     random.shuffle(tasks)
