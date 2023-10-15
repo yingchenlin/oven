@@ -25,6 +25,10 @@ def gauss_cdf(z: Tensor) -> Tensor:
     return ((z * np.sqrt(0.5)).erf() + 1) * 0.5
 
 
+def entropy(x: Tensor) -> Tensor:
+    return x.logsumexp(-1) - (x.softmax(-1) * x).sum(-1)
+
+
 def cross_entropy(x: Tensor, i: Tensor) -> Tensor:
     return x.logsumexp(-1) - x.gather(-1, i.unsqueeze(-1)).squeeze(-1)
 

@@ -12,7 +12,7 @@ import torch
 from torch import Tensor
 
 from ml.engine import Engine
-from ml.models import Capture, Dropout, outer, one_hot
+from ml.models import Capture, Dropout, entropy, outer, one_hot
 from ml.metrics import TensorAgg
 
 
@@ -259,6 +259,68 @@ def plot_coord(coord: Coord, ax: plt.Axes):
     ax.grid()
 
 
+def plot_slice1d(
+    engine: Engine,
+    layer: int,
+    coord: Coord,
+    axis: str,
+    label: str,
+    size: int,
+    ax: Optional[plt.Axes] = None,
+):
+    assert isinstance(engine.model, torch.nn.Sequential)
+    modules = list(engine.model.children())[layer:]
+    modules = [m for m in modules if not isinstance(m, Capture)]
+    model = torch.nn.Sequential(*modules)
+
+    engine.model.train(False)
+
+    t = (torch.arange(size) + 0.5) / size * 2 - 1
+    if axis == "x":
+        inputs = coord.forward(t[None, :], torch.zeros((1, 1)))
+    elif axis == "y":
+        inputs = coord.forward(torch.zeros((1, 1)), t[None, :])
+    else:
+        raise NotImplementedError
+    with torch.no_grad():
+        outputs = model(inputs.to(engine.device)).detach().cpu()
+    s = entropy(outputs.squeeze(0)) / torch.tensor(outputs.shape[-1]).log()
+
+    if ax is None:
+        _, ax = plt.subplots()
+    ax.plot(t, s, label=label)
+
+
+def plot_samples1d(
+    samples: Samples,
+    layer: int,
+    coord: Coord,
+    axis: str,
+    label: str,
+    distance: float = torch.inf,
+    ratio: float = 0,
+    ax: Optional[plt.Axes] = None,
+):
+    x, y, z = coord.inverse(samples.states[layer])
+    if axis == "x":
+        t = x
+    elif axis == "y":
+        t = y
+    else:
+        raise NotImplementedError
+
+    i = torch.arange(len(z))
+    if ratio > 0:
+        i = z.topk(int(len(z) * ratio), largest=False, sorted=False).indices
+    if distance < torch.inf:
+        i = i[z[i] < distance]
+
+    if ax is None:
+        _, ax = plt.subplots()
+    ax.hist(t[i], density=True, bins=50, range=(-1, 1), histtype="step", label=label)
+    ax.set_xlim(-1, 1)
+
+
 def plot_slice(
     engine: Engine,
     layer: int,
@@ -285,9 +347,7 @@ def plot_slice(
     if color == "label":
         k = torch.argmax(outputs, dim=-1) / n
     elif color == "entropy":
-        k = (
-            outputs.logsumexp(-1) - (outputs.softmax(-1) * outputs).sum(-1)
-        ) / torch.tensor(n).log()
+        k = entropy(outputs) / torch.tensor(n).log()
 
     if ax is None:
         _, ax = plt.subplots()

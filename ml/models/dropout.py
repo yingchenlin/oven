@@ -61,6 +61,7 @@ class Dropout(nn.Module):
         self.std = config.std
         self.dist = config.data["dist"]
         self.mean = config.data["mean"]
+        self.conj = config.data.get("conj", False)
         assert isinstance(self.std, float)
         assert self.dist in dists
         assert self.mean in means
@@ -71,6 +72,9 @@ class Dropout(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         if self.training and self.std != 0.0:
             d = dists[self.dist](x, self.std)
+            if self.conj:
+                n = len(d) // 2
+                d[:n] = -d[n:]
             r = means[self.mean](x.square()).sqrt()
             x = x + d * r
         return x

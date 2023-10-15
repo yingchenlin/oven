@@ -2,12 +2,30 @@
     "base": "configs/base.json",
     "groups": {
         "base": {
+            "dataset": true,
+            "dropout_scheme": "base",
+            "dropout_std": "std.7",
+            "dropout_mean": true
+        },
+        "conj": {
+            "dataset": true,
+            "dropout_scheme": "conj",
+            "dropout_std": "std.7",
+            "dropout_mean": true
+        },
+        "mean2": {
+            "dataset": true,
+            "dropout_scheme": "mean2",
+            "dropout_std": "std.7",
+            "dropout_mean": true
+        },
+        "mean16": {
             "dataset": "c100",
-            "dropout_scheme": "quad",
+            "dropout_scheme": "mean16",
             "dropout_std": "std.7",
             "dropout_mean": [
-                "e",
-                "b"
+                "b",
+                "e"
             ]
         },
         "bern": {
@@ -43,7 +61,12 @@
                 }
             },
             "base": {},
-            "mean": {
+            "mean2": {
+                "fit": {
+                    "num_samples": 2
+                }
+            },
+            "mean16": {
                 "fit": {
                     "num_samples": 16
                 }
@@ -53,6 +76,16 @@
                     "dropout": {
                         "dist": "bernoulli"
                     }
+                }
+            },
+            "conj": {
+                "model": {
+                    "dropout": {
+                        "conj": true
+                    }
+                },
+                "fit": {
+                    "num_samples": 2
                 }
             },
             "hinge": {
